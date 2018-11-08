@@ -11,23 +11,28 @@ type flags struct {
 	ConfigFile string
 }
 
+type app struct {
+	api *Api
+}
+
 func main() {
+	app := app{}
 	flags := parseFlags()
 
 	cfg, err := NewConfig(flags.ConfigFile)
 	panicIfError(err)
 
-	api := NewApi(cfg)
+	app.Setup(cfg)
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGTERM)
 	signal.Notify(sig, syscall.SIGINT)
 
-	api.Start()
+	app.Start()
 
 	<-sig
 
-	api.Stop()
+	app.Stop()
 }
 
 func parseFlags() flags {
@@ -39,5 +44,19 @@ func parseFlags() flags {
 }
 
 func panicIfError(err error) {
-	panic(err)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (a *app) Setup(config Config) {
+	a.api = NewApi(config)
+}
+
+func (a *app) Start() {
+	a.api.Start()
+}
+
+func (a *app) Stop() {
+	a.api.Stop()
 }

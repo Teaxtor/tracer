@@ -23,6 +23,10 @@ func NewConfig(configFile string) (Config, error) {
 	}, nil
 }
 
+func setDefaults(vpr *viper.Viper) {
+	vpr.SetDefault("api_port", 80)
+}
+
 func readConfig(vpr *viper.Viper, file string) error {
 	if len(file) == 0 {
 		return nil

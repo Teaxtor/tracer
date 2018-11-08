@@ -13,8 +13,8 @@ type Api struct {
 func NewApi(config Config) *Api {
 	r := gin.New()
 
-	r.GET("/health", healthEndpoint)
-	r.GET("trace", traceEndpoint)
+	r.GET("/health", healthEndpoint())
+	r.GET("trace", traceEndpoint())
 
 	return &Api{
 		server: &http.Server{
@@ -36,16 +36,20 @@ func (a *Api) Stop () error {
 	return a.server.Close()
 }
 
-func (c *gin.Context) healthEndpoint () {
-	c.JSON(http.StatusOK, gin.H{})
+func healthEndpoint () gin.HandlerFunc {
+	return func (c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{})
+	}
 }
 
-func (c *gin.Context) traceEndpoint () {
-	// form validation
+func traceEndpoint () gin.HandlerFunc {
+	return func (c *gin.Context) {
+		// form validation
 
-	// pass to chrome
+		// pass to chrome
 
-	// return response
+		// return response
 
-	c.JSON(http.StatusOK, gin.H{})
+		c.JSON(http.StatusOK, gin.H{})
+	}
 }
