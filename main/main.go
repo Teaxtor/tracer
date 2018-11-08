@@ -5,21 +5,23 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"tracer"
 )
 
 type flags struct {
-	ConfigFile string
+	configFile string
 }
 
 type app struct {
 	api *Api
+	tracer *tracer.Tracer
 }
 
 func main() {
 	app := app{}
 	flags := parseFlags()
 
-	cfg, err := NewConfig(flags.ConfigFile)
+	cfg, err := NewConfig(flags.configFile)
 	panicIfError(err)
 
 	app.Setup(cfg)
@@ -39,7 +41,7 @@ func parseFlags() flags {
 	configFile := flag.String("config", "", "path to a config file")
 
 	return flags{
-		ConfigFile: *configFile,
+		configFile: *configFile,
 	}
 }
 
@@ -50,7 +52,8 @@ func panicIfError(err error) {
 }
 
 func (a *app) Setup(config Config) {
-	a.api = NewApi(config)
+	a.api = NewApi(config.Port)
+	a.tracer = tracer.New(config.Browser, config.ProxyInfo, config.RemotePort)
 }
 
 func (a *app) Start() {
@@ -59,4 +62,5 @@ func (a *app) Start() {
 
 func (a *app) Stop() {
 	a.api.Stop()
+	a.tracer.Stop()
 }

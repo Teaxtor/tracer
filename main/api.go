@@ -10,7 +10,7 @@ type Api struct {
 	server *http.Server
 }
 
-func NewApi(config Config) *Api {
+func NewApi(port int) *Api {
 	r := gin.New()
 
 	r.GET("/health", healthEndpoint())
@@ -18,7 +18,7 @@ func NewApi(config Config) *Api {
 
 	return &Api{
 		server: &http.Server{
-			Addr: ":" + config.Port,
+			Addr: ":" + string(port),
 			Handler: r,
 		},
 	}
