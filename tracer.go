@@ -92,6 +92,10 @@ func (t *Tracer) Trace(config TraceConfig) (*TraceResult, error) {
 
 	timeout := false
 
+	browser.CallbackEvent("Page.loadEventFired", func(params godet.Params) {
+
+	})
+
 	browser.CallbackEvent("Page.navigationRequested", func(params godet.Params) {
 		url := params.String("url")
 
@@ -127,6 +131,14 @@ func (t *Tracer) Trace(config TraceConfig) (*TraceResult, error) {
 		log.Println("Could not navigate to ", config.Url, err)
 
 		return nil, err
+	}
+
+	count, navEntries, err := browser.GetNavigationHistory()
+
+	if err != nil {
+		log.Println("Unable to get navigation history")
+	} else {
+		log.Println(count, navEntries)
 	}
 
 	err = browser.CloseTab(tab)

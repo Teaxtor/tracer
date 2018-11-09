@@ -8,6 +8,9 @@ import (
 )
 
 type BrowserConfig struct {
+	ScreenWidth         int
+	ScreenHeight        int
+	UseMobile           bool
 	UserAgent           string
 	Timeout             int
 	RemoteConnects      int
@@ -62,7 +65,8 @@ func NewBrowser(config BrowserConfig, info ProxyInfo, proxyKey string, remotePor
 
 	remote.SetVirtualTimePolicy(godet.VirtualTimePolicyPause, config.Timeout)
 	remote.SetUserAgent(config.UserAgent)
-
+	remote.SetVisibleSize(config.ScreenWidth, config.ScreenHeight)
+	remote.SetDeviceMetricsOverride(config.ScreenWidth, config.ScreenHeight, 3, config.UseMobile, false)
 
 	return &Browser{remote}, nil
 }

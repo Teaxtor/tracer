@@ -17,3 +17,8 @@ vendor/
 
 # binary
 tracer
+
+# config files
+*.yaml
+*.yml
+*.json
