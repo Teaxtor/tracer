@@ -1,9 +1,10 @@
-package tracer
+package pkg
 
 import (
 	"github.com/raff/godet"
 	"log"
 	"os/exec"
+	"strconv"
 	"time"
 )
 
@@ -15,6 +16,7 @@ type BrowserConfig struct {
 	Timeout             int
 	RemoteConnects      int
 	WaitBetweenConnects time.Duration
+	Headless 			bool
 }
 
 type Browser struct {
@@ -25,15 +27,18 @@ func NewBrowser(config BrowserConfig, info ProxyInfo, proxyKey string, remotePor
 	proxySetting := info.GenerateProxy(proxyKey)
 
 	binary := "chromium"
-	options := []string{"--headless", "--remote-debugging-port=" + string(remotePort), "--hide-scrollbars", "--disable-extensions", "--disable-gpu"}
+	options := []string{"--remote-debugging-port=" + strconv.Itoa(remotePort), "--hide-scrollbars", "--disable-extensions", "--disable-gpu"}
 	target := "about:blank"
 
 	if len(proxySetting) > 0 {
 		options = append(options, proxySetting)
 	}
 
-	options = append(options, target)
+	if config.Headless {
+		options = append(options, "--headless")
+	}
 
+	options = append(options, target)
 
 	log.Println("starting browser for ", proxyKey)
 	cmd := exec.Command(binary, options...)
@@ -50,7 +55,7 @@ func NewBrowser(config BrowserConfig, info ProxyInfo, proxyKey string, remotePor
 			time.Sleep(config.WaitBetweenConnects)
 		}
 
-		remote, err = godet.Connect("localhost:" + string(remotePort), true)
+		remote, err = godet.Connect("localhost:" + strconv.Itoa(remotePort), true)
 
 		if err == nil {
 			break
@@ -63,15 +68,12 @@ func NewBrowser(config BrowserConfig, info ProxyInfo, proxyKey string, remotePor
 		log.Fatal("Failed to launch remote ", remotePort, " ", err)
 	}
 
-	remote.SetVirtualTimePolicy(godet.VirtualTimePolicyPause, config.Timeout)
 	remote.SetUserAgent(config.UserAgent)
 	remote.SetVisibleSize(config.ScreenWidth, config.ScreenHeight)
 	remote.SetDeviceMetricsOverride(config.ScreenWidth, config.ScreenHeight, 3, config.UseMobile, false)
 
 	return &Browser{remote}, nil
 }
-
-
 
 func (b *Browser) EnableEvents() {
 	b.RuntimeEvents(true)

@@ -1,16 +1,17 @@
-package main
+package app
 
 import (
 	"github.com/spf13/viper"
+	"log"
 	"strings"
 	"time"
-	"tracer"
+	"tracer/pkg"
 )
 
 type Config struct {
-	Browser tracer.BrowserConfig
-	Port int
-	ProxyInfo tracer.ProxyInfo
+	Browser    pkg.BrowserConfig
+	Port       int
+	ProxyInfo  pkg.ProxyInfo
 	RemotePort int
 }
 
@@ -25,26 +26,29 @@ func NewConfig(configFile string) (Config, error) {
 		return Config{}, err
 	}
 
-	proxy := tracer.ProxyInfo{
+	proxy := pkg.ProxyInfo{
 		DefaultKey: vpr.GetString("proxy_default_endpoint"),
 		User:       vpr.GetString("proxy_user"),
 		Password:   vpr.GetString("proxy_password"),
 		Endpoints:  vpr.GetStringMapString("proxy_endpoints"),
 	}
 
+	browser := pkg.BrowserConfig{
+		ScreenWidth:         vpr.GetInt("browser_screen_width"),
+		ScreenHeight:        vpr.GetInt("browser_screen_height"),
+		UseMobile:           vpr.GetBool("browser_use_mobile"),
+		UserAgent:           vpr.GetString("browser_user_agent"),
+		Timeout:             vpr.GetInt("browser_timeout"),
+		RemoteConnects:      vpr.GetInt("browser_remote_connects"),
+		WaitBetweenConnects: vpr.GetDuration("browser_wait_between_connects") * time.Millisecond,
+		Headless: vpr.GetBool("browser_headless"),
+	}
+
 	return Config{
 		Port: vpr.GetInt("api_port"),
 		ProxyInfo: proxy,
 		RemotePort: vpr.GetInt("remote_port"),
-		Browser: tracer.BrowserConfig{
-			ScreenWidth:         vpr.GetInt("browser_screen_width"),
-			ScreenHeight:        vpr.GetInt("browser_screen_height"),
-			UseMobile:           vpr.GetBool("browser_use_mobile"),
-			UserAgent:           vpr.GetString("browser_user_agent"),
-			Timeout:             vpr.GetInt("browser_timeout"),
-			RemoteConnects:      vpr.GetInt("browser_remote_connects"),
-			WaitBetweenConnects: vpr.GetDuration("browser_wait_between_connects") * time.Millisecond,
-		},
+		Browser: browser,
 	}, nil
 }
 
@@ -68,6 +72,8 @@ func readConfig(vpr *viper.Viper, file string) error {
 	if len(file) == 0 {
 		return nil
 	}
+
+	log.Println("Using config file", file)
 
 	index := strings.LastIndexAny(file, ".")
 

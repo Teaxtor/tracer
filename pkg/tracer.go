@@ -1,4 +1,4 @@
-package tracer
+package pkg
 
 import (
 	"fmt"
@@ -9,7 +9,6 @@ import (
 
 const (
 	ResultSuccess = "success"
-	ResultTimeout = "timeout"
 	ResultUndefined = "undefined"
 )
 
@@ -21,11 +20,8 @@ type Tracer struct {
 }
 
 type TraceConfig struct {
-	Proxy string
-	Url string
-	UserAgent string
-	TotalTimeout int
-	NavigationFinished func(params godet.Params) bool
+	Proxy   string `json:"proxy"`
+	Url     string `json:"url"`
 }
 
 type TraceResult struct {
@@ -51,7 +47,7 @@ func (t *Tracer) Stop() {
 }
 
 func (t *Tracer) Trace(config TraceConfig) (*TraceResult, error) {
-	browser, err := t.GetBrowser(config.Proxy, config.UserAgent)
+	browser, err := t.GetBrowser(config.Proxy)
 
 	if err != nil {
 		return nil, err
@@ -62,7 +58,7 @@ func (t *Tracer) Trace(config TraceConfig) (*TraceResult, error) {
 		log.Println("Stopped remote for ", config.Proxy)
 	})
 
-	tab, err := browser.NewTab(config.Url)
+	tab, err := browser.NewTab("about:blank")
 
 	if err != nil {
 		log.Println("Could not create tab", err)
@@ -71,6 +67,7 @@ func (t *Tracer) Trace(config TraceConfig) (*TraceResult, error) {
 	}
 
 	err = browser.ActivateTab(tab)
+
 	if err != nil {
 		log.Println("Could not activate tab", err)
 
@@ -85,47 +82,8 @@ func (t *Tracer) Trace(config TraceConfig) (*TraceResult, error) {
 	}
 
 	start := time.Now()
-
-	defer func() {
-		result.Duration = time.Since(start)
-	}()
-
-	timeout := false
-
-	browser.CallbackEvent("Page.loadEventFired", func(params godet.Params) {
-
-	})
-
-	browser.CallbackEvent("Page.navigationRequested", func(params godet.Params) {
-		url := params.String("url")
-
-		result.Trace = append(result.Trace, url)
-
-		log.Println("navigation request for ", params.String("url"))
-
-		var response godet.NavigationResponse
-
-		switch {
-		case timeout:
-			result.Result = ResultTimeout
-			response = godet.NavigationCancelAndIgnore
-
-		case config.NavigationFinished(params):
-			result.Result = ResultSuccess
-			response = godet.NavigationCancelAndIgnore
-
-		default:
-			response = godet.NavigationProceed
-		}
-
-		browser.ProcessNavigation(params.Int("navigationId"), response)
-	})
-
-	browser.CallbackEvent("Emulation.virtualTimeBudgetExpired", func(params godet.Params) {
-		timeout = true
-	})
-
 	_, err = browser.Navigate(config.Url)
+	result.Duration = time.Since(start)
 
 	if err != nil {
 		log.Println("Could not navigate to ", config.Url, err)
@@ -133,12 +91,15 @@ func (t *Tracer) Trace(config TraceConfig) (*TraceResult, error) {
 		return nil, err
 	}
 
-	count, navEntries, err := browser.GetNavigationHistory()
+	result.Result = ResultSuccess
+	_, navEntries, err := browser.GetNavigationHistory()
 
 	if err != nil {
 		log.Println("Unable to get navigation history")
 	} else {
-		log.Println(count, navEntries)
+		for _, entry := range navEntries {
+			result.Trace = append(result.Trace, entry.URL)
+		}
 	}
 
 	err = browser.CloseTab(tab)
@@ -150,7 +111,7 @@ func (t *Tracer) Trace(config TraceConfig) (*TraceResult, error) {
 	return result, nil
 }
 
-func (t *Tracer) GetBrowser(proxyKey string, userAgent string) (*Browser, error) {
+func (t *Tracer) GetBrowser(proxyKey string) (*Browser, error) {
 	if browser, ok := t.Browsers[proxyKey]; ok {
 		return browser, nil
 	}
@@ -165,8 +126,6 @@ func (t *Tracer) GetBrowser(proxyKey string, userAgent string) (*Browser, error)
 	}
 
 	t.Browsers[proxyKey] = browser
-
-
 
 	return t.Browsers[proxyKey], nil
 }
